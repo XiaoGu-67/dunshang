@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>墩上</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: #f7f7f8; color: #222; }
+  h1 { font-size: 24px; text-align: center; margin: 8px 0 4px; }
+  .rules { font-size: 12px; color: #888; text-align: center; margin-bottom: 16px; line-height: 1.5; }
+  textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit; }
+  textarea { height: 90px; resize: vertical; }
+  button { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
+  button:disabled { background: #ccc; }
+  .search { margin: 20px 0 10px; }
+  .post { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .post .meta { font-size: 12px; color: #999; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .post .content { font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+  .report-btn { background: none; border: none; color: #bbb; font-size: 12px; cursor: pointer; padding: 2px 6px; }
+  .report-btn:hover { color: #ff6b8a; }
+  .comment-toggle { background: none; border: none; color: #999; font-size: 13px; cursor: pointer; padding: 6px 0 0; width: auto; margin: 0; }
+  .comments { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
+  .comment { font-size: 14px; line-height: 1.5; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
+  .comment .cmeta { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
+  .comment-input { display: flex; gap: 8px; margin-top: 8px; }
+  .comment-input input { flex: 1; padding: 8px; font-size: 14px; }
+  .comment-input button { width: auto; padding: 8px 14px; margin: 0; font-size: 14px; }
+  .empty { text-align: center; color: #aaa; font-size: 14px; padding: 30px 0; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .overlay.hidden { display: none; }
+  .modal { background: #fff; border-radius: 14px; padding: 20px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; }
+  .modal h2 { font-size: 18px; margin: 0 0 12px; text-align: center; }
+  .modal p { font-size: 14px; line-height: 1.7; color: #444; margin: 0 0 8px; }
+  .modal button { width: 100%; padding: 12px; margin-top: 14px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
+  .modal button:disabled { background: #ccc; }
+  .footer-rules { margin-top: 30px; border-top: 1px solid #e5e5e5; padding-top: 12px; }
+  .footer-rules summary { font-size: 13px; color: #888; cursor: pointer; list-style: none; text-align: center; }
+  .footer-rules summary::-webkit-details-marker { display: none; }
+  .footer-rules .full-text { font-size: 12px; color: #777; line-height: 1.8; margin-top: 10px; }
+  .footer-rules .full-text p { margin: 0 0 8px; }
+  .feedback-bar { text-align: center; margin: 20px 0 6px; }
+  .feedback-bar button { width: auto; padding: 8px 16px; font-size: 14px; background: #fff; color: #ff6b8a; border: 1px solid #ff6b8a; }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>社区声明</h2>
+    <p><strong>欢迎来到「墩上」</strong></p>
+    <p>本墙为个人兴趣项目，非学校官方渠道。匿名发言，但匿名可追溯，请对内容负责。</p>
+    <p>请遵守：不造谣传谣、不曝光他人隐私、不传播色情暴力辱骂内容。涉及未证实信息或他人隐私的帖子，本站有权隐藏或删除。</p>
+    <p>被举报内容会暂时隐藏，由管理员确认后处理。继续使用即表示你同意以上约定。文明发言，尊重他人。</p>
+    <button id="agreeBtn" disabled>请阅读（5s）</button>
+  </div>
+</div>
+
+<h1>墩上</h1>
+<div class="rules">匿名但可追溯 · 请文明发言<br>不造谣 · 不开户 · 不传播色情暴力内容<br>涉及隐私或未证实信息，本站有权删除<br>文明用语，尊重他人</div>
+
+<textarea id="content" placeholder="说点什么…（匿名发布）" maxlength="500"></textarea>
+<button id="publish">发布</button>
+
+<input type="text" id="search" class="search" placeholder="🔍 搜索关键词…">
+
+<div id="list"></div>
+
+<div class="feedback-bar">
+  <button id="openFeedback">📮 意见箱</button>
+</div>
+
+<div class="overlay hidden" id="feedbackOverlay">
+  <div class="modal">
+    <h2>📮 意见箱</h2>
+    <p style="font-size:13px;color:#888;">你的意见只有管理员能看到，不会公开。请文明填写。</p>
+    <textarea id="feedbackContent" maxlength="500" placeholder="写下你的意见或建议…（最多500字）" style="height:120px;"></textarea>
+    <button id="sendFeedback">提交</button>
+    <button id="closeFeedback" style="background:#eee;color:#666;margin-top:8px;">关闭</button>
+  </div>
+</div>
+
+<details class="footer-rules">
+  <summary>📄 查看完整社区声明</summary>
+  <div class="full-text">
+    <p><strong>欢迎来到「墩上」</strong></p>
+    <p>「墩上」是一个由个人搭建的兴趣交流小站，<strong>不是学校官方渠道</strong>，也不代表任何组织立场。这里可以匿名发言，但匿名不等于无责。</p>
+    <p>为了让大家都能安心说话，请遵守以下约定：</p>
+    <p><strong>一、不造谣、不传谣。</strong> 未经证实的信息、指名道姓的八卦、涉及他人隐私的内容，请勿发布。本站有权不发布或直接删除。</p>
+    <p><strong>二、不开户、不曝光隐私。</strong> 不公开他人真实姓名、班级、联系方式、照片等个人信息。</p>
+    <p><strong>三、不传播色情、暴力、辱骂内容。</strong> 包含侮辱、人身攻击、歧视、血腥暴力的文字，一律删除。</p>
+    <p><strong>四、匿名但可追溯。</strong> 本站会记录发帖时间与匿名标识，发布者需对自己发布的内容负责。情节严重时，本站可配合追溯。</p>
+    <p><strong>五、本站有权删除任何违规内容。</strong> 被删除的内容不代表本站认定其真假，仅为避免不实信息传播。被举报的内容会暂时隐藏，经管理员确认后处理。</p>
+    <p>继续使用即表示你已知悉并同意以上声明。请文明发言，尊重他人，也保护自己。</p>
+  </div>
+</details>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://attrvlgphagduizhyusz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0dHJ2bGdwaGFnZHVpemh5dXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDA2NDEsImV4cCI6MjEwODQxNjY0MX0.unQM1rUHXDf4eaUlRIsOj6QHh7bV0vix85hJ6rAAPtg";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const BAD_WORDS = ["色情","暴力","开户","傻逼","脑残","操你妈","约炮","裸照","去死","贱人","死妈","死全家","婊子","操逼","卖屌"];
+
+let allPosts = [];
+let allComments = {};
+let user = null;
+const expanded = new Set();
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+async function initAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) return session.user;
+  const { data, error } = await db.auth.signInAnonymously();
+  if (error) { toast("登录失败：" + error.message); return null; }
+  return data.user;
+}
+
+async function loadPosts() {
+  const { data, error } = await db.from("posts")
+    .select("*").eq("status", "visible")
+    .order("created_at", { ascending: false }).limit(200);
+  if (error) { toast("加载失败：" + error.message); return; }
+  allPosts = data || [];
+  await loadComments();
+  render();
+}
+
+async function loadComments() {
+  allComments = {};
+  if (!allPosts.length) return;
+  const ids = allPosts.map(p => p.id);
+  const { data, error } = await db.from("comments")
+    .select("*").in("post_id", ids).eq("status", "visible")
+    .order("created_at", { ascending: true });
+  if (error) return;
+  (data || []).forEach(c => {
+    if (!allComments[c.post_id]) allComments[c.post_id] = [];
+    allComments[c.post_id].push(c);
+  });
+}
+
+function render() {
+  const kw = document.getElementById("search").value.trim().toLowerCase();
+  const list = document.getElementById("list");
+  const filtered = kw
+    ? allPosts.filter(p => p.content.toLowerCase().includes(kw) || p.nickname.toLowerCase().includes(kw))
+    : allPosts;
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">' + (kw ? "没有找到相关帖子" : "还没有人发言，来抢第一条吧") + '</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(p => {
+    const comments = allComments[p.id] || [];
+    const isOpen = expanded.has(p.id);
+    const commentsHtml = isOpen ? `
+      <div class="comments">
+        ${comments.length ? comments.map(c => `
+          <div class="comment">
+            <div class="cmeta">
+              <span>${escapeHtml(c.nickname)}</span>
+              <span>${new Date(c.created_at).toLocaleString("zh-CN")}
+                <button class="report-btn" data-type="comment" data-id="${c.id}">举报</button>
+              </span>
+            </div>
+            <div>${escapeHtml(c.content)}</div>
+          </div>
+        `).join("") : '<div style="color:#bbb;font-size:13px;">还没有评论</div>'}
+        <div class="comment-input">
+          <input type="text" maxlength="300" placeholder="写评论…（最多300字）" data-post="${p.id}">
+          <button class="send-comment" data-post="${p.id}">发送</button>
+        </div>
+      </div>
+    ` : "";
+    return `
+      <div class="post" data-id="${p.id}">
+        <div class="meta">
+          <span>${escapeHtml(p.nickname)}</span>
+          <span>${new Date(p.created_at).toLocaleString("zh-CN")}
+            <button class="report-btn" data-type="post" data-id="${p.id}">举报</button>
+          </span>
+        </div>
+        <div class="content">${escapeHtml(p.content)}</div>
+        <button class="comment-toggle" data-id="${p.id}">
+          💬 ${comments.length} 条评论 ${isOpen ? "▲" : "▼"}
+        </button>
+        ${commentsHtml}
+      </div>
+    `;
+  }).join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+document.getElementById("list").addEventListener("click", async (e) => {
+  const toggle = e.target.closest(".comment-toggle");
+  if (toggle) {
+    const id = toggle.dataset.id;
+    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+    render();
+    return;
+  }
+
+  const sendBtn = e.target.closest(".send-comment");
+  if (sendBtn) {
+    const postId = sendBtn.dataset.post;
+    const input = document.querySelector(`.comment-input input[data-post="${postId}"]`);
+    const content = input.value.trim();
+    if (!content) { toast("评论不能为空"); return; }
+    if (content.length > 300) { toast("评论最多300字"); return; }
+    if (BAD_WORDS.some(w => content.includes(w))) { toast("评论含违规词，请修改"); return; }
+    if (!user) user = await initAuth();
+    if (!user) return;
+    sendBtn.disabled = true;
+    const { error } = await db.from("comments").insert({
+      post_id: postId,
+      user_id: user.id,
+      nickname: "匿名#" + user.id.slice(0, 4),
+      content: content,
+      status: "visible",
+      report_count: 0
+    });
+    sendBtn.disabled = false;
+    if (error) { toast("评论失败：" + error.message); return; }
+    input.value = "";
+    toast("评论成功");
+    await loadComments();
+    render();
+    return;
+  }
+
+  const reportBtn = e.target.closest(".report-btn");
+  if (reportBtn) {
+    const type = reportBtn.dataset.type;
+    const id = reportBtn.dataset.id;
+    const reason = prompt("举报理由（选填）：");
+    if (reason === null) return;
+    const table = type === "post" ? "posts" : "comments";
+    const { data: row } = await db.from(table).select("report_count").eq("id", id).single();
+    const { error } = await db.from(table).update({
+      status: "hidden",
+      report_count: (row?.report_count || 0) + 1
+    }).eq("id", id);
+    if (error) { toast("举报失败：" + error.message); return; }
+    toast("已举报，等待管理员处理");
+    if (type === "post") await loadPosts();
+    else { await loadComments(); render(); }
+  }
+});
+
+document.getElementById("publish").addEventListener("click", async () => {
+  const btn = document.getElementById("publish");
+  const content = document.getElementById("content").value.trim();
+  if (!content) { toast("内容不能为空"); return; }
+  if (BAD_WORDS.some(w => content.includes(w))) { toast("内容包含违规词，请修改"); return; }
+  if (!user) user = await initAuth();
+  if (!user) return;
+  btn.disabled = true;
+  const { error } = await db.from("posts").insert({
+    user_id: user.id,
+    nickname: "匿名#" + user.id.slice(0, 4),
+    content: content,
+    status: "visible",
+    report_count: 0
+  });
+  btn.disabled = false;
+  if (error) { toast("发布失败：" + error.message); return; }
+  document.getElementById("content").value = "";
+  toast("发布成功");
+  loadPosts();
+});
+
+document.getElementById("search").addEventListener("input", render);
+
+document.getElementById("openFeedback").addEventListener("click", () => {
+  document.getElementById("feedbackOverlay").classList.remove("hidden");
+});
+document.getElementById("closeFeedback").addEventListener("click", () => {
+  document.getElementById("feedbackOverlay").classList.add("hidden");
+});
+document.getElementById("sendFeedback").addEventListener("click", async () => {
+  const btn = document.getElementById("sendFeedback");
+  const content = document.getElementById("feedbackContent").value.trim();
+  if (!content) { toast("意见不能为空"); return; }
+  if (content.length > 500) { toast("意见最多500字"); return; }
+  if (BAD_WORDS.some(w => content.includes(w))) { toast("内容含违规词，请修改"); return; }
+  if (!user) user = await initAuth();
+  if (!user) return;
+  btn.disabled = true;
+  const { error } = await db.from("feedback").insert({
+    user_id: user.id,
+    nickname: "匿名#" + user.id.slice(0, 4),
+    content: content
+  });
+  btn.disabled = false;
+  if (error) { toast("提交失败：" + error.message); return; }
+  document.getElementById("feedbackContent").value = "";
+  document.getElementById("feedbackOverlay").classList.add("hidden");
+  toast("已收到，感谢反馈");
+});
+
+(function() {
+  const KEY = "dunshang_agreed_date";
+  const today = new Date().toDateString();
+  const overlay = document.getElementById("overlay");
+  const btn = document.getElementById("agreeBtn");
+
+  if (localStorage.getItem(KEY) === today) {
+    overlay.classList.add("hidden");
+    return;
+  }
+
+  let left = 5;
+  btn.textContent = `请阅读（${left}s）`;
+  const timer = setInterval(() => {
+    left--;
+    if (left <= 0) {
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.textContent = "我知道了";
+    } else {
+      btn.textContent = `请阅读（${left}s）`;
+    }
+  }, 1000);
+
+  btn.addEventListener("click", () => {
+    localStorage.setItem(KEY, today);
+    overlay.classList.add("hidden");
+  });
+})();
+
+(async () => {
+  user = await initAuth();
+  await loadPosts();
+})();
+</script>
+</body>
+      </html>
