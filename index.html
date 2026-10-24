@@ -20,6 +20,7 @@
   .post .content { font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
   .report-btn { background: none; border: none; color: #bbb; font-size: 12px; cursor: pointer; padding: 2px 6px; }
   .report-btn:hover { color: #ff6b8a; }
+  .delete-btn { color: #ff4d4f; }
   .comment-toggle { background: none; border: none; color: #999; font-size: 13px; cursor: pointer; padding: 6px 0 0; width: auto; margin: 0; }
   .comments { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
   .comment { font-size: 14px; line-height: 1.5; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
@@ -171,6 +172,7 @@ function render() {
               <span>${escapeHtml(c.nickname)}</span>
               <span>${new Date(c.created_at).toLocaleString("zh-CN")}
                 <button class="report-btn" data-type="comment" data-id="${c.id}">举报</button>
+                ${c.user_id === user.id ? `<button class="report-btn delete-btn" data-type="comment" data-id="${c.id}">删除</button>` : ''}
               </span>
             </div>
             <div>${escapeHtml(c.content)}</div>
@@ -188,6 +190,7 @@ function render() {
           <span>${escapeHtml(p.nickname)}</span>
           <span>${new Date(p.created_at).toLocaleString("zh-CN")}
             <button class="report-btn" data-type="post" data-id="${p.id}">举报</button>
+            ${p.user_id === user.id ? `<button class="report-btn delete-btn" data-type="post" data-id="${p.id}">删除</button>` : ''}
           </span>
         </div>
         <div class="content">${escapeHtml(p.content)}</div>
@@ -238,6 +241,21 @@ document.getElementById("list").addEventListener("click", async (e) => {
     toast("评论成功");
     await loadComments();
     render();
+    return;
+  }
+
+  const deleteBtn = e.target.closest(".delete-btn");
+  if (deleteBtn) {
+    if (confirm("确定要删除这条内容吗？")) {
+      const type = deleteBtn.dataset.type;
+      const id = deleteBtn.dataset.id;
+      const table = type === "post" ? "posts" : "comments";
+      const { error } = await db.from(table).delete().eq("id", id);
+      if (error) { toast("删除失败：" + error.message); return; }
+      toast("删除成功");
+      if (type === "post") await loadPosts();
+      else { await loadComments(); render(); }
+    }
     return;
   }
 
@@ -347,4 +365,4 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
 })();
 </script>
 </body>
-      </html>
+ </html>
