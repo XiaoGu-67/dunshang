@@ -8,11 +8,21 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang SC", sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: #f7f7f8; color: #222; }
+  
   .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   h1 { font-size: 24px; margin: 0; }
   .header-btns { display: flex; gap: 8px; }
   .header-btns button { padding: 6px 12px; font-size: 13px; background: #fff; color: #ff6b8a; border: 1px solid #ff6b8a; border-radius: 20px; font-weight: 600; width: auto; margin: 0; }
-  .rules { font-size: 12px; color: #888; text-align: center; margin-bottom: 16px; line-height: 1.5; }
+  
+  .rules { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; line-height: 1.5; }
+  
+  /* 将折叠声明移到了顶部，调整了边距 */
+  .footer-rules { margin: 0 0 12px 0; border-top: none; border-bottom: 1px dashed #eee; padding-bottom: 12px; }
+  .footer-rules summary { font-size: 13px; color: #888; cursor: pointer; list-style: none; text-align: center; }
+  .footer-rules summary::-webkit-details-marker { display: none; }
+  .footer-rules .full-text { font-size: 12px; color: #777; line-height: 1.8; margin-top: 10px; background: #fff; padding: 10px; border-radius: 8px; }
+  .footer-rules .full-text p { margin: 0 0 8px; }
+
   textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit; }
   textarea { height: 90px; resize: vertical; }
   button.main-btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
@@ -46,11 +56,6 @@
   .modal p { font-size: 14px; line-height: 1.7; color: #444; margin: 0 0 8px; }
   .modal button { width: 100%; padding: 12px; margin-top: 14px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
   .modal button:disabled { background: #ccc; }
-  .footer-rules { margin-top: 30px; border-top: 1px solid #e5e5e5; padding-top: 12px; }
-  .footer-rules summary { font-size: 13px; color: #888; cursor: pointer; list-style: none; text-align: center; }
-  .footer-rules summary::-webkit-details-marker { display: none; }
-  .footer-rules .full-text { font-size: 12px; color: #777; line-height: 1.8; margin-top: 10px; }
-  .footer-rules .full-text p { margin: 0 0 8px; }
   
   .profile-item { background: #f9f9f9; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; border: 1px solid #eee; }
   .profile-item .ptime { font-size: 11px; color: #aaa; margin-bottom: 4px; display: block; }
@@ -79,6 +84,22 @@
 
 <div class="rules">匿名但可追溯 · 请文明发言<br>不造谣 · 不开户 · 不传播色情暴力内容<br>涉及隐私或未证实信息，本站有权删除<br>文明用语，尊重他人</div>
 
+<!-- 完整社区声明移到了这里，就在发帖框的正上方 -->
+<details class="footer-rules">
+  <summary>📄 查看完整社区声明</summary>
+  <div class="full-text">
+    <p><strong>欢迎来到「墩上」</strong></p>
+    <p>「墩上」是一个由个人搭建的兴趣交流小站，<strong>不是学校官方渠道</strong>，也不代表任何组织立场。这里可以匿名发言，但匿名不等于无责。</p>
+    <p>为了让大家都能安心说话，请遵守以下约定：</p>
+    <p><strong>一、不造谣、不传谣。</strong> 未经证实的信息、指名道姓的八卦、涉及他人隐私的内容，请勿发布。本站有权不发布或直接删除。</p>
+    <p><strong>二、不开户、不曝光隐私。</strong> 不公开他人真实姓名、班级、联系方式、照片等个人信息。</p>
+    <p><strong>三、不传播色情、暴力、辱骂内容。</strong> 包含侮辱、人身攻击、歧视、血腥暴力的文字，一律删除。</p>
+    <p><strong>四、匿名但可追溯。</strong> 本站会记录发帖时间与匿名标识，发布者需对自己发布的内容负责。情节严重时，本站可配合追溯。</p>
+    <p><strong>五、本站有权删除任何违规内容。</strong> 被删除的内容不代表本站认定其真假，仅为避免不实信息传播。被举报的内容会暂时隐藏，经管理员确认后处理。</p>
+    <p>继续使用即表示你已知悉并同意以上声明。请文明发言，尊重他人，也保护自己。</p>
+  </div>
+</details>
+
 <textarea id="content" placeholder="说点什么…（匿名发布）" maxlength="500"></textarea>
 <button id="publish" class="main-btn">发布</button>
 
@@ -103,21 +124,6 @@
     <button id="closeFeedback" style="background:#eee;color:#666;margin-top:8px;">关闭</button>
   </div>
 </div>
-
-<details class="footer-rules">
-  <summary>📄 查看完整社区声明</summary>
-  <div class="full-text">
-    <p><strong>欢迎来到「墩上」</strong></p>
-    <p>「墩上」是一个由个人搭建的兴趣交流小站，<strong>不是学校官方渠道</strong>，也不代表任何组织立场。这里可以匿名发言，但匿名不等于无责。</p>
-    <p>为了让大家都能安心说话，请遵守以下约定：</p>
-    <p><strong>一、不造谣、不传谣。</strong> 未经证实的信息、指名道姓的八卦、涉及他人隐私的内容，请勿发布。本站有权不发布或直接删除。</p>
-    <p><strong>二、不开户、不曝光隐私。</strong> 不公开他人真实姓名、班级、联系方式、照片等个人信息。</p>
-    <p><strong>三、不传播色情、暴力、辱骂内容。</strong> 包含侮辱、人身攻击、歧视、血腥暴力的文字，一律删除。</p>
-    <p><strong>四、匿名但可追溯。</strong> 本站会记录发帖时间与匿名标识，发布者需对自己发布的内容负责。情节严重时，本站可配合追溯。</p>
-    <p><strong>五、本站有权删除任何违规内容。</strong> 被删除的内容不代表本站认定其真假，仅为避免不实信息传播。被举报的内容会暂时隐藏，经管理员确认后处理。</p>
-    <p>继续使用即表示你已知悉并同意以上声明。请文明发言，尊重他人，也保护自己。</p>
-  </div>
-</details>
 
 <div class="toast" id="toast"></div>
 
@@ -448,4 +454,4 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
 })();
 </script>
 </body>
-        </html>
+</html>
