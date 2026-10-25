@@ -8,28 +8,36 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang SC", sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: #f7f7f8; color: #222; }
-  h1 { font-size: 24px; text-align: center; margin: 8px 0 4px; }
+  .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  h1 { font-size: 24px; margin: 0; }
+  .header-btns { display: flex; gap: 8px; }
+  .header-btns button { padding: 6px 12px; font-size: 13px; background: #fff; color: #ff6b8a; border: 1px solid #ff6b8a; border-radius: 20px; font-weight: 600; width: auto; margin: 0; }
   .rules { font-size: 12px; color: #888; text-align: center; margin-bottom: 16px; line-height: 1.5; }
   textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit; }
   textarea { height: 90px; resize: vertical; }
-  button { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
-  button:disabled { background: #ccc; }
+  button.main-btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
+  button.main-btn:disabled { background: #ccc; }
   .search { margin: 20px 0 10px; }
   .post { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .post .meta { font-size: 12px; color: #999; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
   .post .content { font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-  .report-btn { background: none; border: none; color: #bbb; font-size: 12px; cursor: pointer; padding: 2px 6px; }
-  .report-btn:hover { color: #ff6b8a; }
-  .delete-btn { color: #ff4d4f; }
-  .comment-toggle { background: none; border: none; color: #999; font-size: 13px; cursor: pointer; padding: 6px 0 0; width: auto; margin: 0; }
+  .post-actions { display: flex; gap: 12px; margin-top: 8px; align-items: center; }
+  .action-btn { background: none; border: none; color: #999; font-size: 13px; cursor: pointer; padding: 4px 0; display: flex; align-items: center; gap: 4px; }
+  .action-btn:hover { color: #ff6b8a; }
+  .delete-btn { color: #ff4d4f; margin-left: auto; }
+  .like-btn.liked { color: #ff6b8a; font-weight: bold; }
   .comments { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
   .comment { font-size: 14px; line-height: 1.5; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
   .comment .cmeta { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
   .comment-input { display: flex; gap: 8px; margin-top: 8px; }
   .comment-input input { flex: 1; padding: 8px; font-size: 14px; }
-  .comment-input button { width: auto; padding: 8px 14px; margin: 0; font-size: 14px; }
+  .comment-input button { width: auto; padding: 8px 14px; margin: 0; font-size: 14px; background: #ff6b8a; color:#fff; border:none; border-radius: 8px;}
   .empty { text-align: center; color: #aaa; font-size: 14px; padding: 30px 0; }
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  
+  .clickable-name { color: #007aff; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
+  .clickable-name:hover { text-decoration-color: #007aff; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 10000;}
   .toast.show { opacity: 1; }
   .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
   .overlay.hidden { display: none; }
@@ -43,8 +51,9 @@
   .footer-rules summary::-webkit-details-marker { display: none; }
   .footer-rules .full-text { font-size: 12px; color: #777; line-height: 1.8; margin-top: 10px; }
   .footer-rules .full-text p { margin: 0 0 8px; }
-  .feedback-bar { text-align: center; margin: 20px 0 6px; }
-  .feedback-bar button { width: auto; padding: 8px 16px; font-size: 14px; background: #fff; color: #ff6b8a; border: 1px solid #ff6b8a; }
+  
+  .profile-item { background: #f9f9f9; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; border: 1px solid #eee; }
+  .profile-item .ptime { font-size: 11px; color: #aaa; margin-bottom: 4px; display: block; }
 </style>
 </head>
 <body>
@@ -60,18 +69,29 @@
   </div>
 </div>
 
-<h1>墩上</h1>
+<div class="header-bar">
+  <h1>墩上</h1>
+  <div class="header-btns">
+    <button id="openMyProfile">👤 我的主页</button>
+    <button id="openFeedback">📮 意见箱</button>
+  </div>
+</div>
+
 <div class="rules">匿名但可追溯 · 请文明发言<br>不造谣 · 不开户 · 不传播色情暴力内容<br>涉及隐私或未证实信息，本站有权删除<br>文明用语，尊重他人</div>
 
 <textarea id="content" placeholder="说点什么…（匿名发布）" maxlength="500"></textarea>
-<button id="publish">发布</button>
+<button id="publish" class="main-btn">发布</button>
 
 <input type="text" id="search" class="search" placeholder="🔍 搜索关键词…">
 
 <div id="list"></div>
 
-<div class="feedback-bar">
-  <button id="openFeedback">📮 意见箱</button>
+<div class="overlay hidden" id="profileOverlay">
+  <div class="modal">
+    <h2 id="profileTitle">用户主页</h2>
+    <div id="profileList" style="max-height: 50vh; overflow-y: auto; margin-bottom: 10px;"></div>
+    <button id="closeProfile" style="background:#eee;color:#666;">关闭</button>
+  </div>
 </div>
 
 <div class="overlay hidden" id="feedbackOverlay">
@@ -169,10 +189,10 @@ function render() {
         ${comments.length ? comments.map(c => `
           <div class="comment">
             <div class="cmeta">
-              <span>${escapeHtml(c.nickname)}</span>
+              <span class="clickable-name" data-name="${escapeHtml(c.nickname)}">${escapeHtml(c.nickname)}</span>
               <span>${new Date(c.created_at).toLocaleString("zh-CN")}
-                <button class="report-btn" data-type="comment" data-id="${c.id}">举报</button>
-                ${c.user_id === user.id ? `<button class="report-btn delete-btn" data-type="comment" data-id="${c.id}">删除</button>` : ''}
+                <button class="action-btn" data-type="comment" data-id="${c.id}">举报</button>
+                ${c.user_id === user.id ? `<button class="action-btn delete-btn" data-type="comment" data-id="${c.id}">删除</button>` : ''}
               </span>
             </div>
             <div>${escapeHtml(c.content)}</div>
@@ -187,16 +207,22 @@ function render() {
     return `
       <div class="post" data-id="${p.id}">
         <div class="meta">
-          <span>${escapeHtml(p.nickname)}</span>
-          <span>${new Date(p.created_at).toLocaleString("zh-CN")}
-            <button class="report-btn" data-type="post" data-id="${p.id}">举报</button>
-            ${p.user_id === user.id ? `<button class="report-btn delete-btn" data-type="post" data-id="${p.id}">删除</button>` : ''}
-          </span>
+          <span class="clickable-name" data-name="${escapeHtml(p.nickname)}">${escapeHtml(p.nickname)}</span>
+          <span>${new Date(p.created_at).toLocaleString("zh-CN")}</span>
         </div>
         <div class="content">${escapeHtml(p.content)}</div>
-        <button class="comment-toggle" data-id="${p.id}">
-          💬 ${comments.length} 条评论 ${isOpen ? "▲" : "▼"}
-        </button>
+        
+        <div class="post-actions">
+          <button class="action-btn like-btn" data-id="${p.id}" data-likes="${p.likes || 0}">
+            👍 <span class="like-count">${p.likes || 0}</span>
+          </button>
+          <button class="comment-toggle action-btn" data-id="${p.id}">
+            💬 ${comments.length} 条评论 ${isOpen ? "▲" : "▼"}
+          </button>
+          <button class="action-btn" data-type="post" data-id="${p.id}">举报</button>
+          ${p.user_id === user.id ? `<button class="action-btn delete-btn" data-type="post" data-id="${p.id}">删除</button>` : ''}
+        </div>
+        
         ${commentsHtml}
       </div>
     `;
@@ -207,12 +233,61 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 }
 
+async function showProfile(nickname) {
+  document.getElementById("profileTitle").textContent = nickname + " 的主页";
+  const listBox = document.getElementById("profileList");
+  listBox.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">加载中...</div>';
+  document.getElementById("profileOverlay").classList.remove("hidden");
+
+  const { data: pData } = await db.from("posts").select("*").eq("nickname", nickname).eq("status", "visible").order("created_at", { ascending: false });
+  const { data: cData } = await db.from("comments").select("*").eq("nickname", nickname).eq("status", "visible").order("created_at", { ascending: false });
+
+  let html = '';
+  if (pData && pData.length > 0) {
+    html += '<h3 style="font-size:14px;margin:10px 0 6px;color:#555;">发布的帖子</h3>';
+    pData.forEach(p => {
+      html += `<div class="profile-item"><span class="ptime">${new Date(p.created_at).toLocaleString("zh-CN")}</span>${escapeHtml(p.content)}</div>`;
+    });
+  }
+  if (cData && cData.length > 0) {
+    html += '<h3 style="font-size:14px;margin:15px 0 6px;color:#555;">发表的评论</h3>';
+    cData.forEach(c => {
+      html += `<div class="profile-item" style="background:#f0f8ff; border-color:#d0e8ff;"><span class="ptime">${new Date(c.created_at).toLocaleString("zh-CN")}</span>${escapeHtml(c.content)}</div>`;
+    });
+  }
+  if (!html) {
+    html = '<div style="text-align:center;color:#aaa;padding:20px;">这个人还没有发表过内容</div>';
+  }
+  listBox.innerHTML = html;
+}
+
 document.getElementById("list").addEventListener("click", async (e) => {
+  const clickName = e.target.closest(".clickable-name");
+  if (clickName) {
+    showProfile(clickName.dataset.name);
+    return;
+  }
+
   const toggle = e.target.closest(".comment-toggle");
   if (toggle) {
     const id = toggle.dataset.id;
     if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
     render();
+    return;
+  }
+
+  const likeBtn = e.target.closest(".like-btn");
+  if (likeBtn) {
+    likeBtn.disabled = true;
+    const id = likeBtn.dataset.id;
+    const currentLikes = parseInt(likeBtn.dataset.likes || 0);
+    const { error } = await db.from("posts").update({ likes: currentLikes + 1 }).eq("id", id);
+    likeBtn.disabled = false;
+    if (error) { toast("点赞失败：" + error.message); return; }
+    
+    likeBtn.dataset.likes = currentLikes + 1;
+    likeBtn.querySelector(".like-count").textContent = currentLikes + 1;
+    likeBtn.classList.add("liked");
     return;
   }
 
@@ -259,8 +334,8 @@ document.getElementById("list").addEventListener("click", async (e) => {
     return;
   }
 
-  const reportBtn = e.target.closest(".report-btn");
-  if (reportBtn) {
+  const reportBtn = e.target.closest(".action-btn[data-type='post'], .action-btn[data-type='comment']");
+  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle")) {
     const type = reportBtn.dataset.type;
     const id = reportBtn.dataset.id;
     const reason = prompt("举报理由（选填）：");
@@ -291,7 +366,8 @@ document.getElementById("publish").addEventListener("click", async () => {
     nickname: "匿名#" + user.id.slice(0, 4),
     content: content,
     status: "visible",
-    report_count: 0
+    report_count: 0,
+    likes: 0
   });
   btn.disabled = false;
   if (error) { toast("发布失败：" + error.message); return; }
@@ -301,6 +377,13 @@ document.getElementById("publish").addEventListener("click", async () => {
 });
 
 document.getElementById("search").addEventListener("input", render);
+
+document.getElementById("openMyProfile").addEventListener("click", () => {
+  if (user) showProfile("匿名#" + user.id.slice(0, 4));
+});
+document.getElementById("closeProfile").addEventListener("click", () => {
+  document.getElementById("profileOverlay").classList.add("hidden");
+});
 
 document.getElementById("openFeedback").addEventListener("click", () => {
   document.getElementById("feedbackOverlay").classList.remove("hidden");
@@ -365,4 +448,4 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
 })();
 </script>
 </body>
- </html>
+        </html>
