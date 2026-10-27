@@ -151,7 +151,6 @@ const expanded = new Set();
 
 let readMsgs = JSON.parse(localStorage.getItem("dunshang_read") || "[]");
 let likedPosts = JSON.parse(localStorage.getItem("dunshang_liked") || "[]");
-let likedComments = JSON.parse(localStorage.getItem("dunshang_liked_comments") || "[]");
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -246,23 +245,18 @@ function render() {
     
     const commentsHtml = isOpen ? `
       <div class="comments">
-        ${comments.length ? comments.map(c => {
-          const isCLiked = likedComments.includes(c.id);
-          return `
+        ${comments.length ? comments.map(c => `
           <div class="comment">
             <div class="cmeta">
               <span class="clickable-name" data-name="${escapeHtml(c.nickname)}">${escapeHtml(c.nickname)}</span>
               <span>${new Date(c.created_at).toLocaleString("zh-CN")}
-                <button class="action-btn comment-like-btn ${isCLiked ? 'liked' : ''}" data-cid="${c.id}" data-likes="${c.likes || 0}">
-                  👍 <span class="clike-count">${c.likes || 0}</span>
-                </button>
                 <button class="action-btn" data-type="comment" data-id="${c.id}">举报</button>
                 ${c.user_id === user.id ? `<button class="action-btn delete-btn" data-type="comment" data-id="${c.id}">删除</button>` : ''}
               </span>
             </div>
             <div class="comment-content" data-name="${escapeHtml(c.nickname)}" data-post="${p.id}">${escapeHtml(c.content)}</div>
           </div>
-        `}).join("") : '<div style="color:#bbb;font-size:13px;">还没有评论</div>'}
+        `).join("") : '<div style="color:#bbb;font-size:13px;">还没有评论</div>'}
         <div class="comment-input">
           <input type="text" maxlength="300" placeholder="写评论…（最多300字）" data-post="${p.id}">
           <button class="send-comment" data-post="${p.id}">发送</button>
@@ -443,34 +437,6 @@ document.getElementById("list").addEventListener("click", async (e) => {
     return;
   }
 
-  const commentLikeBtn = e.target.closest(".comment-like-btn");
-  if (commentLikeBtn) {
-    commentLikeBtn.disabled = true;
-    const cid = commentLikeBtn.dataset.cid;
-    let currentLikes = parseInt(commentLikeBtn.dataset.likes || 0);
-    const isLiked = likedComments.includes(cid);
-
-    if (isLiked) {
-      const { error } = await db.from("comments").update({ likes: Math.max(0, currentLikes - 1) }).eq("id", cid);
-      if (error) { toast("操作失败：" + error.message); commentLikeBtn.disabled = false; return; }
-      likedComments = likedComments.filter(lid => lid !== cid);
-      localStorage.setItem("dunshang_liked_comments", JSON.stringify(likedComments));
-      commentLikeBtn.classList.remove("liked");
-      commentLikeBtn.dataset.likes = Math.max(0, currentLikes - 1);
-      commentLikeBtn.querySelector(".clike-count").textContent = Math.max(0, currentLikes - 1);
-    } else {
-      const { error } = await db.from("comments").update({ likes: currentLikes + 1 }).eq("id", cid);
-      if (error) { toast("操作失败：" + error.message); commentLikeBtn.disabled = false; return; }
-      likedComments.push(cid);
-      localStorage.setItem("dunshang_liked_comments", JSON.stringify(likedComments));
-      commentLikeBtn.classList.add("liked");
-      commentLikeBtn.dataset.likes = currentLikes + 1;
-      commentLikeBtn.querySelector(".clike-count").textContent = currentLikes + 1;
-    }
-    commentLikeBtn.disabled = false;
-    return;
-  }
-
   const sendBtn = e.target.closest(".send-comment");
   if (sendBtn) {
     const postId = sendBtn.dataset.post;
@@ -513,7 +479,7 @@ document.getElementById("list").addEventListener("click", async (e) => {
   }
 
   const reportBtn = e.target.closest(".action-btn[data-type='post'], .action-btn[data-type='comment']");
-  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle") && !reportBtn.classList.contains("comment-like-btn")) {
+  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle")) {
     const type = reportBtn.dataset.type;
     const id = reportBtn.dataset.id;
     const reason = prompt("举报理由（选填）：");
@@ -545,4 +511,71 @@ document.getElementById("publish").addEventListener("click", async () => {
 
 document.getElementById("search").addEventListener("input", render);
 
-document.getElementById("openMyProfile
+document.getElementById("openMyProfile").addEventListener("click", () => {
+  if (user) showProfile("匿名#" + user.id.slice(0, 4));
+});
+document.getElementById("closeProfile").addEventListener("click", () => {
+  document.getElementById("profileOverlay").classList.add("hidden");
+});
+
+document.getElementById("closeMsg").addEventListener("click", () => {
+  document.getElementById("msgOverlay").classList.add("hidden");
+});
+
+document.getElementById("openFeedback").addEventListener("click", () => {
+  document.getElementById("feedbackOverlay").classList.remove("hidden");
+});
+document.getElementById("closeFeedback").addEventListener("click", () => {
+  document.getElementById("feedbackOverlay").classList.add("hidden");
+});
+document.getElementById("sendFeedback").addEventListener("click", async () => {
+  const btn = document.getElementById("sendFeedback");
+  const content = document.getElementById("feedbackContent").value.trim();
+  if (!content) { toast("意见不能为空"); return; }
+  if (!user) user = await initAuth();
+  btn.disabled = true;
+  const { error } = await db.from("feedback").insert({ user_id: user.id, nickname: "匿名#" + user.id.slice(0, 4), content: content });
+  btn.disabled = false;
+  if (error) { toast("提交失败：" + error.message); return; }
+  document.getElementById("feedbackContent").value = "";
+  document.getElementById("feedbackOverlay").classList.add("hidden");
+  toast("已收到，感谢反馈");
+});
+
+(function() {
+  const KEY = "dunshang_agreed_date";
+  const today = new Date().toDateString();
+  const overlay = document.getElementById("overlay");
+  const btn = document.getElementById("agreeBtn");
+
+  if (localStorage.getItem(KEY) === today) {
+    overlay.classList.add("hidden");
+    return;
+  }
+
+  let left = 5;
+  btn.textContent = `请阅读（${left}s）`;
+  const timer = setInterval(() => {
+    left--;
+    if (left <= 0) {
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.textContent = "我知道了";
+    } else {
+      btn.textContent = `请阅读（${left}s）`;
+    }
+  }, 1000);
+
+  btn.addEventListener("click", () => {
+    localStorage.setItem(KEY, today);
+    overlay.classList.add("hidden");
+  });
+})();
+
+(async () => {
+  user = await initAuth();
+  await loadPosts();
+})();
+</script>
+</body>
+</html>
