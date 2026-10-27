@@ -147,7 +147,6 @@ let user = null;
 let myMsgs = [];
 const expanded = new Set();
 
-// 获取本地已点赞的列表
 let likedPosts = JSON.parse(localStorage.getItem("dunshang_liked") || "[]");
 
 function toast(msg) {
@@ -197,28 +196,20 @@ async function loadMsgs() {
   
   if (myPostIds.length === 0) { myMsgs = []; return; }
 
-  // 获取别人给我的评论
   const { data: cData } = await db.from("comments")
     .select("*").in("post_id", myPostIds).neq("nickname", myNickname).eq("status", "visible");
   
-  // 获取别人给我的点赞（点赞数大于0，且不是我自己发的）
   const likedMsgs = myPosts.filter(p => p.likes > 0).map(p => ({
-    id: p.id,
-    type: "like",
-    nickname: "有人",
+    id: p.id, type: "like", nickname: "有人",
     content: `点赞了你的帖子：「${p.content.substring(0, 15)}...」`
   }));
 
-  // 获取别人给我的评论
   const commentMsgs = (cData || []).map(c => ({
-    id: c.id,
-    type: "comment",
-    post_id: c.post_id,
-    nickname: c.nickname,
-    content: c.content
+    id: c.id, type: "comment", post_id: c.post_id,
+    nickname: c.nickname, content: c.content
   }));
 
-  // 合并并按时间倒序（这里为了简单，直接混排）
+  // 合并并按 id 排序
   myMsgs = [...commentMsgs, ...likedMsgs];
 
   const btn = document.getElementById("openMyMsgs");
@@ -248,6 +239,7 @@ function render() {
     const isOpen = expanded.has(p.id);
     const isLiked = likedPosts.includes(p.id);
     
+    // 【新增】帖子里的评论也可以直接回复，通过点击评论里的“回复”按钮
     const commentsHtml = isOpen ? `
       <div class="comments">
         ${comments.length ? comments.map(c => `
@@ -255,6 +247,7 @@ function render() {
             <div class="cmeta">
               <span class="clickable-name" data-name="${escapeHtml(c.nickname)}">${escapeHtml(c.nickname)}</span>
               <span>${new Date(c.created_at).toLocaleString("zh-CN")}
+                <button class="action-btn reply-comment-btn" data-cid="${c.id}" data-post="${p.id}" data-target="${escapeHtml(c.nickname)}">回复</button>
                 <button class="action-btn" data-type="comment" data-id="${c.id}">举报</button>
                 ${c.user_id === user.id ? `<button class="action-btn delete-btn" data-type="comment" data-id="${c.id}">删除</button>` : ''}
               </span>
@@ -358,6 +351,14 @@ document.getElementById("openMyMsgs").addEventListener("click", () => {
     `).join("");
   }
   document.getElementById("msgOverlay").classList.remove("hidden");
+
+  // 打开消息中心后，清除红点（假装已读）
+  setTimeout(() => {
+    const btn = document.getElementById("openMyMsgs");
+    btn.textContent = "📬 消息";
+    btn.style.color = "#ff6b8a";
+    btn.style.borderColor = "#ff6b8a";
+  }, 1000);
 });
 
 window.sendReply = async function(commentId, postId) {
@@ -396,24 +397,28 @@ document.getElementById("list").addEventListener("click", async (e) => {
     return;
   }
 
+  // 【新增】处理帖子里的“回复”按钮
+  const replyCommentBtn = e.target.closest(".reply-comment-btn");
+  if (replyCommentBtn) {
+    const postId = replyCommentBtn.dataset.post;
+    const targetName = replyCommentBtn.dataset.target;
+    const input = document.querySelector(`.comment-input input[data-post="${postId}"]`);
+    input.value = `回复 @${targetName}：`;
+    input.focus();
+    return;
+  }
+
   const likeBtn = e.target.closest(".like-btn");
   if (likeBtn) {
     const id = likeBtn.dataset.id;
-    if (likedPosts.includes(id)) {
-      toast("你已经点过赞啦");
-      return;
-    }
-    
+    if (likedPosts.includes(id)) { toast("你已经点过赞啦"); return; }
     likeBtn.disabled = true;
     const currentLikes = parseInt(likeBtn.dataset.likes || 0);
     const { error } = await db.from("posts").update({ likes: currentLikes + 1 }).eq("id", id);
     likeBtn.disabled = false;
     if (error) { toast("点赞失败：" + error.message); return; }
-    
-    // 记录到本地
     likedPosts.push(id);
     localStorage.setItem("dunshang_liked", JSON.stringify(likedPosts));
-    
     likeBtn.dataset.likes = currentLikes + 1;
     likeBtn.querySelector(".like-count").textContent = currentLikes + 1;
     likeBtn.classList.add("liked");
@@ -462,7 +467,7 @@ document.getElementById("list").addEventListener("click", async (e) => {
   }
 
   const reportBtn = e.target.closest(".action-btn[data-type='post'], .action-btn[data-type='comment']");
-  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle")) {
+  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle") && !reportBtn.classList.contains("reply-comment-btn")) {
     const type = reportBtn.dataset.type;
     const id = reportBtn.dataset.id;
     const reason = prompt("举报理由（选填）：");
@@ -503,6 +508,8 @@ document.getElementById("closeProfile").addEventListener("click", () => {
 
 document.getElementById("closeMsg").addEventListener("click", () => {
   document.getElementById("msgOverlay").classList.add("hidden");
+  // 关闭消息中心时也刷新一下状态
+  loadMsgs();
 });
 
 document.getElementById("openFeedback").addEventListener("click", () => {
@@ -561,4 +568,4 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
 })();
 </script>
 </body>
- </html>
+</html>
