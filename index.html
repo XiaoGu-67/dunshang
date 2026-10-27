@@ -149,7 +149,6 @@ let user = null;
 let myMsgs = [];
 const expanded = new Set();
 
-// 本地存储：已看消息、已赞帖子、已赞评论
 let readMsgs = JSON.parse(localStorage.getItem("dunshang_read") || "[]");
 let likedPosts = JSON.parse(localStorage.getItem("dunshang_liked") || "[]");
 let likedComments = JSON.parse(localStorage.getItem("dunshang_liked_comments") || "[]");
@@ -216,7 +215,6 @@ async function loadMsgs() {
 
   myMsgs = [...commentMsgs, ...likedMsgs];
 
-  // 过滤出未读消息来计算红点
   const unreadMsgs = myMsgs.filter(m => !readMsgs.includes(m.id));
   const btn = document.getElementById("openMyMsgs");
   
@@ -362,7 +360,6 @@ document.getElementById("openMyMsgs").addEventListener("click", () => {
   }
   document.getElementById("msgOverlay").classList.remove("hidden");
 
-  // 全部标记为已读
   readMsgs = myMsgs.map(m => m.id);
   localStorage.setItem("dunshang_read", JSON.stringify(readMsgs));
   
@@ -408,14 +405,13 @@ document.getElementById("list").addEventListener("click", async (e) => {
     return;
   }
 
-  // 【新增】直接点击评论文字来回复
   const commentContent = e.target.closest(".comment-content");
   if (commentContent) {
     const postId = commentContent.dataset.post;
     const targetName = commentContent.dataset.name;
     const input = document.querySelector(`.comment-input input[data-post="${postId}"]`);
     input.value = `回复 @${targetName}：`;
-    input.focus(); // 自动弹出键盘
+    input.focus(); 
     return;
   }
 
@@ -447,7 +443,6 @@ document.getElementById("list").addEventListener("click", async (e) => {
     return;
   }
 
-  // 【新增】评论的点赞/取消点赞
   const commentLikeBtn = e.target.closest(".comment-like-btn");
   if (commentLikeBtn) {
     commentLikeBtn.disabled = true;
@@ -550,18 +545,4 @@ document.getElementById("publish").addEventListener("click", async () => {
 
 document.getElementById("search").addEventListener("input", render);
 
-document.getElementById("openMyProfile").addEventListener("click", () => {
-  if (user) showProfile("匿名#" + user.id.slice(0, 4));
-});
-document.getElementById("closeProfile").addEventListener("click", () => {
-  document.getElementById("profileOverlay").classList.add("hidden");
-});
-
-document.getElementById("closeMsg").addEventListener("click", () => {
-  document.getElementById("msgOverlay").classList.add("hidden");
-});
-
-document.getElementById("openFeedback").addEventListener("click", () => {
-  document.getElementById("feedbackOverlay").classList.remove("hidden");
-});
-document.getElementById("closeFeedback").
+document.getElementById("openMyProfile
