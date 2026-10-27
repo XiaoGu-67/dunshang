@@ -33,7 +33,9 @@
   .like-btn.liked { color: #ff6b8a; font-weight: bold; }
   .comments { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
   .comment { font-size: 14px; line-height: 1.5; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
-  .comment .cmeta { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
+  .comment .cmeta { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;}
+  .comment-content { cursor: pointer; padding: 4px 0; transition: background 0.2s; border-radius: 4px; }
+  .comment-content:hover { background: #f0f8ff; }
   .comment-input { display: flex; gap: 8px; margin-top: 8px; }
   .comment-input input { flex: 1; padding: 8px; font-size: 14px; }
   .comment-input button { width: auto; padding: 8px 14px; margin: 0; font-size: 14px; background: #ff6b8a; color:#fff; border:none; border-radius: 8px;}
@@ -147,9 +149,10 @@ let user = null;
 let myMsgs = [];
 const expanded = new Set();
 
-// 记录看过的消息和点赞
+// 本地存储：已看消息、已赞帖子、已赞评论
 let readMsgs = JSON.parse(localStorage.getItem("dunshang_read") || "[]");
 let likedPosts = JSON.parse(localStorage.getItem("dunshang_liked") || "[]");
+let likedComments = JSON.parse(localStorage.getItem("dunshang_liked_comments") || "[]");
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -202,7 +205,7 @@ async function loadMsgs() {
     .select("*").in("post_id", myPostIds).neq("nickname", myNickname).eq("status", "visible");
   
   const likedMsgs = myPosts.filter(p => p.likes > 0).map(p => ({
-    id: p.id, type: "like", nickname: "有人",
+    id: "like-" + p.id, type: "like", nickname: "有人",
     content: `点赞了你的帖子：「${p.content.substring(0, 15)}...」`
   }));
 
@@ -245,19 +248,23 @@ function render() {
     
     const commentsHtml = isOpen ? `
       <div class="comments">
-        ${comments.length ? comments.map(c => `
+        ${comments.length ? comments.map(c => {
+          const isCLiked = likedComments.includes(c.id);
+          return `
           <div class="comment">
             <div class="cmeta">
               <span class="clickable-name" data-name="${escapeHtml(c.nickname)}">${escapeHtml(c.nickname)}</span>
               <span>${new Date(c.created_at).toLocaleString("zh-CN")}
-                <button class="action-btn reply-comment-btn" data-cid="${c.id}" data-post="${p.id}" data-target="${escapeHtml(c.nickname)}">回复</button>
+                <button class="action-btn comment-like-btn ${isCLiked ? 'liked' : ''}" data-cid="${c.id}" data-likes="${c.likes || 0}">
+                  👍 <span class="clike-count">${c.likes || 0}</span>
+                </button>
                 <button class="action-btn" data-type="comment" data-id="${c.id}">举报</button>
                 ${c.user_id === user.id ? `<button class="action-btn delete-btn" data-type="comment" data-id="${c.id}">删除</button>` : ''}
               </span>
             </div>
-            <div>${escapeHtml(c.content)}</div>
+            <div class="comment-content" data-name="${escapeHtml(c.nickname)}" data-post="${p.id}">${escapeHtml(c.content)}</div>
           </div>
-        `).join("") : '<div style="color:#bbb;font-size:13px;">还没有评论</div>'}
+        `}).join("") : '<div style="color:#bbb;font-size:13px;">还没有评论</div>'}
         <div class="comment-input">
           <input type="text" maxlength="300" placeholder="写评论…（最多300字）" data-post="${p.id}">
           <button class="send-comment" data-post="${p.id}">发送</button>
@@ -401,13 +408,14 @@ document.getElementById("list").addEventListener("click", async (e) => {
     return;
   }
 
-  const replyCommentBtn = e.target.closest(".reply-comment-btn");
-  if (replyCommentBtn) {
-    const postId = replyCommentBtn.dataset.post;
-    const targetName = replyCommentBtn.dataset.target;
+  // 【新增】直接点击评论文字来回复
+  const commentContent = e.target.closest(".comment-content");
+  if (commentContent) {
+    const postId = commentContent.dataset.post;
+    const targetName = commentContent.dataset.name;
     const input = document.querySelector(`.comment-input input[data-post="${postId}"]`);
     input.value = `回复 @${targetName}：`;
-    input.focus();
+    input.focus(); // 自动弹出键盘
     return;
   }
 
@@ -416,11 +424,9 @@ document.getElementById("list").addEventListener("click", async (e) => {
     likeBtn.disabled = true;
     const id = likeBtn.dataset.id;
     let currentLikes = parseInt(likeBtn.dataset.likes || 0);
-    
     const isLiked = likedPosts.includes(id);
 
     if (isLiked) {
-      // 取消点赞
       const { error } = await db.from("posts").update({ likes: Math.max(0, currentLikes - 1) }).eq("id", id);
       if (error) { toast("操作失败：" + error.message); likeBtn.disabled = false; return; }
       likedPosts = likedPosts.filter(lid => lid !== id);
@@ -429,7 +435,6 @@ document.getElementById("list").addEventListener("click", async (e) => {
       likeBtn.dataset.likes = Math.max(0, currentLikes - 1);
       likeBtn.querySelector(".like-count").textContent = Math.max(0, currentLikes - 1);
     } else {
-      // 点赞
       const { error } = await db.from("posts").update({ likes: currentLikes + 1 }).eq("id", id);
       if (error) { toast("操作失败：" + error.message); likeBtn.disabled = false; return; }
       likedPosts.push(id);
@@ -439,6 +444,35 @@ document.getElementById("list").addEventListener("click", async (e) => {
       likeBtn.querySelector(".like-count").textContent = currentLikes + 1;
     }
     likeBtn.disabled = false;
+    return;
+  }
+
+  // 【新增】评论的点赞/取消点赞
+  const commentLikeBtn = e.target.closest(".comment-like-btn");
+  if (commentLikeBtn) {
+    commentLikeBtn.disabled = true;
+    const cid = commentLikeBtn.dataset.cid;
+    let currentLikes = parseInt(commentLikeBtn.dataset.likes || 0);
+    const isLiked = likedComments.includes(cid);
+
+    if (isLiked) {
+      const { error } = await db.from("comments").update({ likes: Math.max(0, currentLikes - 1) }).eq("id", cid);
+      if (error) { toast("操作失败：" + error.message); commentLikeBtn.disabled = false; return; }
+      likedComments = likedComments.filter(lid => lid !== cid);
+      localStorage.setItem("dunshang_liked_comments", JSON.stringify(likedComments));
+      commentLikeBtn.classList.remove("liked");
+      commentLikeBtn.dataset.likes = Math.max(0, currentLikes - 1);
+      commentLikeBtn.querySelector(".clike-count").textContent = Math.max(0, currentLikes - 1);
+    } else {
+      const { error } = await db.from("comments").update({ likes: currentLikes + 1 }).eq("id", cid);
+      if (error) { toast("操作失败：" + error.message); commentLikeBtn.disabled = false; return; }
+      likedComments.push(cid);
+      localStorage.setItem("dunshang_liked_comments", JSON.stringify(likedComments));
+      commentLikeBtn.classList.add("liked");
+      commentLikeBtn.dataset.likes = currentLikes + 1;
+      commentLikeBtn.querySelector(".clike-count").textContent = currentLikes + 1;
+    }
+    commentLikeBtn.disabled = false;
     return;
   }
 
@@ -484,7 +518,7 @@ document.getElementById("list").addEventListener("click", async (e) => {
   }
 
   const reportBtn = e.target.closest(".action-btn[data-type='post'], .action-btn[data-type='comment']");
-  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle") && !reportBtn.classList.contains("reply-comment-btn")) {
+  if (reportBtn && !reportBtn.classList.contains("delete-btn") && !reportBtn.classList.contains("comment-toggle") && !reportBtn.classList.contains("comment-like-btn")) {
     const type = reportBtn.dataset.type;
     const id = reportBtn.dataset.id;
     const reason = prompt("举报理由（选填）：");
@@ -530,57 +564,4 @@ document.getElementById("closeMsg").addEventListener("click", () => {
 document.getElementById("openFeedback").addEventListener("click", () => {
   document.getElementById("feedbackOverlay").classList.remove("hidden");
 });
-document.getElementById("closeFeedback").addEventListener("click", () => {
-  document.getElementById("feedbackOverlay").classList.add("hidden");
-});
-document.getElementById("sendFeedback").addEventListener("click", async () => {
-  const btn = document.getElementById("sendFeedback");
-  const content = document.getElementById("feedbackContent").value.trim();
-  if (!content) { toast("意见不能为空"); return; }
-  if (!user) user = await initAuth();
-  btn.disabled = true;
-  const { error } = await db.from("feedback").insert({ user_id: user.id, nickname: "匿名#" + user.id.slice(0, 4), content: content });
-  btn.disabled = false;
-  if (error) { toast("提交失败：" + error.message); return; }
-  document.getElementById("feedbackContent").value = "";
-  document.getElementById("feedbackOverlay").classList.add("hidden");
-  toast("已收到，感谢反馈");
-});
-
-(function() {
-  const KEY = "dunshang_agreed_date";
-  const today = new Date().toDateString();
-  const overlay = document.getElementById("overlay");
-  const btn = document.getElementById("agreeBtn");
-
-  if (localStorage.getItem(KEY) === today) {
-    overlay.classList.add("hidden");
-    return;
-  }
-
-  let left = 5;
-  btn.textContent = `请阅读（${left}s）`;
-  const timer = setInterval(() => {
-    left--;
-    if (left <= 0) {
-      clearInterval(timer);
-      btn.disabled = false;
-      btn.textContent = "我知道了";
-    } else {
-      btn.textContent = `请阅读（${left}s）`;
-    }
-  }, 1000);
-
-  btn.addEventListener("click", () => {
-    localStorage.setItem(KEY, today);
-    overlay.classList.add("hidden");
-  });
-})();
-
-(async () => {
-  user = await initAuth();
-  await loadPosts();
-})();
-</script>
-</body>
-</html>
+document.getElementById("closeFeedback").
