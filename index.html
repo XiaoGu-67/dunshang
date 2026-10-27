@@ -8,21 +8,16 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang SC", sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: #f7f7f8; color: #222; }
-  
   .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   h1 { font-size: 24px; margin: 0; }
-  .header-btns { display: flex; gap: 8px; }
-  .header-btns button { padding: 6px 12px; font-size: 13px; background: #fff; color: #ff6b8a; border: 1px solid #ff6b8a; border-radius: 20px; font-weight: 600; width: auto; margin: 0; }
-  
+  .header-btns { display: flex; gap: 8px; flex-wrap: wrap;}
+  .header-btns button { padding: 6px 10px; font-size: 13px; background: #fff; color: #ff6b8a; border: 1px solid #ff6b8a; border-radius: 20px; font-weight: 600; width: auto; margin: 0; }
   .rules { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; line-height: 1.5; }
-  
-  /* 将折叠声明移到了顶部，调整了边距 */
   .footer-rules { margin: 0 0 12px 0; border-top: none; border-bottom: 1px dashed #eee; padding-bottom: 12px; }
   .footer-rules summary { font-size: 13px; color: #888; cursor: pointer; list-style: none; text-align: center; }
   .footer-rules summary::-webkit-details-marker { display: none; }
   .footer-rules .full-text { font-size: 12px; color: #777; line-height: 1.8; margin-top: 10px; background: #fff; padding: 10px; border-radius: 8px; }
   .footer-rules .full-text p { margin: 0 0 8px; }
-
   textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit; }
   textarea { height: 90px; resize: vertical; }
   button.main-btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
@@ -43,10 +38,8 @@
   .comment-input input { flex: 1; padding: 8px; font-size: 14px; }
   .comment-input button { width: auto; padding: 8px 14px; margin: 0; font-size: 14px; background: #ff6b8a; color:#fff; border:none; border-radius: 8px;}
   .empty { text-align: center; color: #aaa; font-size: 14px; padding: 30px 0; }
-  
   .clickable-name { color: #007aff; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
   .clickable-name:hover { text-decoration-color: #007aff; }
-
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 10000;}
   .toast.show { opacity: 1; }
   .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
@@ -56,9 +49,15 @@
   .modal p { font-size: 14px; line-height: 1.7; color: #444; margin: 0 0 8px; }
   .modal button { width: 100%; padding: 12px; margin-top: 14px; border: none; border-radius: 8px; background: #ff6b8a; color: #fff; font-size: 16px; font-weight: 600; }
   .modal button:disabled { background: #ccc; }
-  
   .profile-item { background: #f9f9f9; padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; border: 1px solid #eee; }
   .profile-item .ptime { font-size: 11px; color: #aaa; margin-bottom: 4px; display: block; }
+  .profile-item.clickable { cursor: pointer; transition: background 0.2s; }
+  .profile-item.clickable:hover { background: #f0f8ff; border-color: #007aff; }
+  .msg-item { padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 8px; border-radius: 8px; font-size: 14px; }
+  .msg-item .mname { color: #007aff; font-size: 12px; margin-bottom: 4px; display: block; }
+  .msg-reply-box { display: flex; gap: 8px; margin-top: 8px; }
+  .msg-reply-box input { flex: 1; padding: 6px; font-size: 13px; }
+  .msg-reply-box button { width: auto; padding: 6px 12px; font-size: 13px; margin: 0; }
 </style>
 </head>
 <body>
@@ -77,14 +76,14 @@
 <div class="header-bar">
   <h1>墩上</h1>
   <div class="header-btns">
-    <button id="openMyProfile">👤 我的主页</button>
+    <button id="openMyProfile">👤 我的</button>
+    <button id="openMyMsgs">📬 消息</button>
     <button id="openFeedback">📮 意见箱</button>
   </div>
 </div>
 
 <div class="rules">匿名但可追溯 · 请文明发言<br>不造谣 · 不开户 · 不传播色情暴力内容<br>涉及隐私或未证实信息，本站有权删除<br>文明用语，尊重他人</div>
 
-<!-- 完整社区声明移到了这里，就在发帖框的正上方 -->
 <details class="footer-rules">
   <summary>📄 查看完整社区声明</summary>
   <div class="full-text">
@@ -115,6 +114,14 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="msgOverlay">
+  <div class="modal">
+    <h2>📬 消息中心</h2>
+    <div id="msgList" style="max-height: 50vh; overflow-y: auto; margin-bottom: 10px;"></div>
+    <button id="closeMsg" style="background:#eee;color:#666;">关闭</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="feedbackOverlay">
   <div class="modal">
     <h2>📮 意见箱</h2>
@@ -137,7 +144,11 @@ const BAD_WORDS = ["色情","暴力","开户","傻逼","脑残","操你妈","约
 let allPosts = [];
 let allComments = {};
 let user = null;
+let myMsgs = [];
 const expanded = new Set();
+
+// 获取本地已点赞的列表
+let likedPosts = JSON.parse(localStorage.getItem("dunshang_liked") || "[]");
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -160,6 +171,7 @@ async function loadPosts() {
   if (error) { toast("加载失败：" + error.message); return; }
   allPosts = data || [];
   await loadComments();
+  await loadMsgs();
   render();
 }
 
@@ -177,6 +189,50 @@ async function loadComments() {
   });
 }
 
+async function loadMsgs() {
+  if (!user) return;
+  const myNickname = "匿名#" + user.id.slice(0, 4);
+  const myPosts = allPosts.filter(p => p.nickname === myNickname);
+  const myPostIds = myPosts.map(p => p.id);
+  
+  if (myPostIds.length === 0) { myMsgs = []; return; }
+
+  // 获取别人给我的评论
+  const { data: cData } = await db.from("comments")
+    .select("*").in("post_id", myPostIds).neq("nickname", myNickname).eq("status", "visible");
+  
+  // 获取别人给我的点赞（点赞数大于0，且不是我自己发的）
+  const likedMsgs = myPosts.filter(p => p.likes > 0).map(p => ({
+    id: p.id,
+    type: "like",
+    nickname: "有人",
+    content: `点赞了你的帖子：「${p.content.substring(0, 15)}...」`
+  }));
+
+  // 获取别人给我的评论
+  const commentMsgs = (cData || []).map(c => ({
+    id: c.id,
+    type: "comment",
+    post_id: c.post_id,
+    nickname: c.nickname,
+    content: c.content
+  }));
+
+  // 合并并按时间倒序（这里为了简单，直接混排）
+  myMsgs = [...commentMsgs, ...likedMsgs];
+
+  const btn = document.getElementById("openMyMsgs");
+  if (myMsgs.length > 0) {
+    btn.textContent = `📬 消息(${myMsgs.length})`;
+    btn.style.color = "#ff4d4f";
+    btn.style.borderColor = "#ff4d4f";
+  } else {
+    btn.textContent = `📬 消息`;
+    btn.style.color = "#ff6b8a";
+    btn.style.borderColor = "#ff6b8a";
+  }
+}
+
 function render() {
   const kw = document.getElementById("search").value.trim().toLowerCase();
   const list = document.getElementById("list");
@@ -190,6 +246,8 @@ function render() {
   list.innerHTML = filtered.map(p => {
     const comments = allComments[p.id] || [];
     const isOpen = expanded.has(p.id);
+    const isLiked = likedPosts.includes(p.id);
+    
     const commentsHtml = isOpen ? `
       <div class="comments">
         ${comments.length ? comments.map(c => `
@@ -211,7 +269,7 @@ function render() {
       </div>
     ` : "";
     return `
-      <div class="post" data-id="${p.id}">
+      <div class="post" id="post-${p.id}" data-id="${p.id}">
         <div class="meta">
           <span class="clickable-name" data-name="${escapeHtml(p.nickname)}">${escapeHtml(p.nickname)}</span>
           <span>${new Date(p.created_at).toLocaleString("zh-CN")}</span>
@@ -219,7 +277,7 @@ function render() {
         <div class="content">${escapeHtml(p.content)}</div>
         
         <div class="post-actions">
-          <button class="action-btn like-btn" data-id="${p.id}" data-likes="${p.likes || 0}">
+          <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-id="${p.id}" data-likes="${p.likes || 0}">
             👍 <span class="like-count">${p.likes || 0}</span>
           </button>
           <button class="comment-toggle action-btn" data-id="${p.id}">
@@ -252,7 +310,7 @@ async function showProfile(nickname) {
   if (pData && pData.length > 0) {
     html += '<h3 style="font-size:14px;margin:10px 0 6px;color:#555;">发布的帖子</h3>';
     pData.forEach(p => {
-      html += `<div class="profile-item"><span class="ptime">${new Date(p.created_at).toLocaleString("zh-CN")}</span>${escapeHtml(p.content)}</div>`;
+      html += `<div class="profile-item clickable" onclick="jumpToPost('${p.id}')"><span class="ptime">${new Date(p.created_at).toLocaleString("zh-CN")}</span>${escapeHtml(p.content)}</div>`;
     });
   }
   if (cData && cData.length > 0) {
@@ -266,6 +324,62 @@ async function showProfile(nickname) {
   }
   listBox.innerHTML = html;
 }
+
+window.jumpToPost = function(postId) {
+  document.getElementById("profileOverlay").classList.add("hidden");
+  expanded.add(postId); 
+  render(); 
+  setTimeout(() => {
+    const el = document.getElementById("post-" + postId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = "background 0.5s";
+      el.style.background = "#fff3f3";
+      setTimeout(() => { el.style.background = "#fff"; }, 2000);
+    }
+  }, 100);
+};
+
+document.getElementById("openMyMsgs").addEventListener("click", () => {
+  const listBox = document.getElementById("msgList");
+  if (myMsgs.length === 0) {
+    listBox.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">暂时没有新消息哦</div>';
+  } else {
+    listBox.innerHTML = myMsgs.map(m => `
+      <div class="msg-item">
+        <span class="mname">${escapeHtml(m.nickname)} ${m.type === 'like' ? '赞了你' : '评论了你'}：</span>
+        <div>${escapeHtml(m.content)}</div>
+        ${m.type === 'comment' ? `
+        <div class="msg-reply-box">
+          <input type="text" id="reply-input-${m.id}" placeholder="直接回复他...">
+          <button onclick="sendReply('${m.id}', '${m.post_id}')">回复</button>
+        </div>` : ''}
+      </div>
+    `).join("");
+  }
+  document.getElementById("msgOverlay").classList.remove("hidden");
+});
+
+window.sendReply = async function(commentId, postId) {
+  const input = document.getElementById(`reply-input-${commentId}`);
+  const content = input.value.trim();
+  if (!content) { toast("回复不能为空"); return; }
+  if (BAD_WORDS.some(w => content.includes(w))) { toast("含有违规词"); return; }
+  if (!user) user = await initAuth();
+  
+  const { error } = await db.from("comments").insert({
+    post_id: postId,
+    user_id: user.id,
+    nickname: "匿名#" + user.id.slice(0, 4),
+    content: "【回复】" + content,
+    status: "visible",
+    report_count: 0
+  });
+  if (error) { toast("回复失败：" + error.message); return; }
+  toast("回复成功");
+  input.value = "";
+  loadPosts();
+};
 
 document.getElementById("list").addEventListener("click", async (e) => {
   const clickName = e.target.closest(".clickable-name");
@@ -284,12 +398,21 @@ document.getElementById("list").addEventListener("click", async (e) => {
 
   const likeBtn = e.target.closest(".like-btn");
   if (likeBtn) {
-    likeBtn.disabled = true;
     const id = likeBtn.dataset.id;
+    if (likedPosts.includes(id)) {
+      toast("你已经点过赞啦");
+      return;
+    }
+    
+    likeBtn.disabled = true;
     const currentLikes = parseInt(likeBtn.dataset.likes || 0);
     const { error } = await db.from("posts").update({ likes: currentLikes + 1 }).eq("id", id);
     likeBtn.disabled = false;
     if (error) { toast("点赞失败：" + error.message); return; }
+    
+    // 记录到本地
+    likedPosts.push(id);
+    localStorage.setItem("dunshang_liked", JSON.stringify(likedPosts));
     
     likeBtn.dataset.likes = currentLikes + 1;
     likeBtn.querySelector(".like-count").textContent = currentLikes + 1;
@@ -303,10 +426,8 @@ document.getElementById("list").addEventListener("click", async (e) => {
     const input = document.querySelector(`.comment-input input[data-post="${postId}"]`);
     const content = input.value.trim();
     if (!content) { toast("评论不能为空"); return; }
-    if (content.length > 300) { toast("评论最多300字"); return; }
-    if (BAD_WORDS.some(w => content.includes(w))) { toast("评论含违规词，请修改"); return; }
+    if (BAD_WORDS.some(w => content.includes(w))) { toast("评论含违规词"); return; }
     if (!user) user = await initAuth();
-    if (!user) return;
     sendBtn.disabled = true;
     const { error } = await db.from("comments").insert({
       post_id: postId,
@@ -348,12 +469,9 @@ document.getElementById("list").addEventListener("click", async (e) => {
     if (reason === null) return;
     const table = type === "post" ? "posts" : "comments";
     const { data: row } = await db.from(table).select("report_count").eq("id", id).single();
-    const { error } = await db.from(table).update({
-      status: "hidden",
-      report_count: (row?.report_count || 0) + 1
-    }).eq("id", id);
+    const { error } = await db.from(table).update({ status: "hidden", report_count: (row?.report_count || 0) + 1 }).eq("id", id);
     if (error) { toast("举报失败：" + error.message); return; }
-    toast("已举报，等待管理员处理");
+    toast("已举报");
     if (type === "post") await loadPosts();
     else { await loadComments(); render(); }
   }
@@ -363,18 +481,10 @@ document.getElementById("publish").addEventListener("click", async () => {
   const btn = document.getElementById("publish");
   const content = document.getElementById("content").value.trim();
   if (!content) { toast("内容不能为空"); return; }
-  if (BAD_WORDS.some(w => content.includes(w))) { toast("内容包含违规词，请修改"); return; }
+  if (BAD_WORDS.some(w => content.includes(w))) { toast("内容含违规词"); return; }
   if (!user) user = await initAuth();
-  if (!user) return;
   btn.disabled = true;
-  const { error } = await db.from("posts").insert({
-    user_id: user.id,
-    nickname: "匿名#" + user.id.slice(0, 4),
-    content: content,
-    status: "visible",
-    report_count: 0,
-    likes: 0
-  });
+  const { error } = await db.from("posts").insert({ user_id: user.id, nickname: "匿名#" + user.id.slice(0, 4), content: content, status: "visible", report_count: 0, likes: 0 });
   btn.disabled = false;
   if (error) { toast("发布失败：" + error.message); return; }
   document.getElementById("content").value = "";
@@ -391,6 +501,10 @@ document.getElementById("closeProfile").addEventListener("click", () => {
   document.getElementById("profileOverlay").classList.add("hidden");
 });
 
+document.getElementById("closeMsg").addEventListener("click", () => {
+  document.getElementById("msgOverlay").classList.add("hidden");
+});
+
 document.getElementById("openFeedback").addEventListener("click", () => {
   document.getElementById("feedbackOverlay").classList.remove("hidden");
 });
@@ -401,16 +515,9 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
   const btn = document.getElementById("sendFeedback");
   const content = document.getElementById("feedbackContent").value.trim();
   if (!content) { toast("意见不能为空"); return; }
-  if (content.length > 500) { toast("意见最多500字"); return; }
-  if (BAD_WORDS.some(w => content.includes(w))) { toast("内容含违规词，请修改"); return; }
   if (!user) user = await initAuth();
-  if (!user) return;
   btn.disabled = true;
-  const { error } = await db.from("feedback").insert({
-    user_id: user.id,
-    nickname: "匿名#" + user.id.slice(0, 4),
-    content: content
-  });
+  const { error } = await db.from("feedback").insert({ user_id: user.id, nickname: "匿名#" + user.id.slice(0, 4), content: content });
   btn.disabled = false;
   if (error) { toast("提交失败：" + error.message); return; }
   document.getElementById("feedbackContent").value = "";
@@ -454,4 +561,4 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
 })();
 </script>
 </body>
-</html>
+ </html>
