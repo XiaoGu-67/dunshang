@@ -587,4 +587,15 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
   }, 1000);
 
   btn.addEventListener("click", () => {
-    localStorage.setItem(KEY
+    localStorage.setItem(KEY, today);
+    overlay.classList.add("hidden");
+  });
+})();
+
+(async () => {
+  user = await initAuth();
+  await loadPosts();
+})();
+</script>
+</body>
+</html>
