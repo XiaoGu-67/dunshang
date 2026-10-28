@@ -340,7 +340,8 @@ document.getElementById("openMyMsgs").addEventListener("click", () => {
   if (myMsgs.length === 0) {
     listBox.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">暂时没有新消息哦</div>';
   } else {
-    listBox.innerHTML = myMsgs.map(m => `
+    // 【关键修改】：这里反转了消息的顺序，最新的在最上面
+    listBox.innerHTML = [...myMsgs].reverse().map(m => `
       <div class="msg-item">
         <span class="mname">${escapeHtml(m.nickname)} ${m.type === 'like' ? '赞了你' : '评论了你'}：</span>
         <div>${escapeHtml(m.content)}</div>
@@ -578,4 +579,4 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
 })();
 </script>
 </body>
-</html>
+ </html>
