@@ -55,13 +55,9 @@
   .profile-item .ptime { font-size: 11px; color: #aaa; margin-bottom: 4px; display: block; }
   .profile-item.clickable { cursor: pointer; transition: background 0.2s; }
   .profile-item.clickable:hover { background: #f0f8ff; border-color: #007aff; }
-  
-  /* 消息卡片样式：加了点击手型和悬浮效果 */
   .msg-item { padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 8px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
   .msg-item:hover { background: #f0f8ff; }
   .msg-item .mname { color: #007aff; font-size: 12px; margin-bottom: 4px; display: block; }
-  
-  /* 阻止点击回复框时触发跳转 */
   .msg-reply-box { display: flex; gap: 8px; margin-top: 8px; cursor: default; }
   .msg-reply-box input { flex: 1; padding: 6px; font-size: 13px; }
   .msg-reply-box button { width: auto; padding: 6px 12px; font-size: 13px; margin: 0; }
@@ -69,16 +65,7 @@
 </head>
 <body>
 
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <h2>社区声明</h2>
-    <p><strong>欢迎来到「墩上」</strong></p>
-    <p>本墙为个人兴趣项目，非学校官方渠道。匿名发言，但匿名可追溯，请对内容负责。</p>
-    <p>请遵守：不造谣传谣、不曝光他人隐私、不传播色情暴力辱骂内容。涉及未证实信息或他人隐私的帖子，本站有权隐藏或删除。</p>
-    <p>被举报内容会暂时隐藏，由管理员确认后处理。继续使用即表示你同意以上约定。文明发言，尊重他人。</p>
-    <button id="agreeBtn" disabled>请阅读（5s）</button>
-  </div>
-</div>
+<!-- 【改动】：那个5秒阅读的弹窗代码已经被彻底删除了 -->
 
 <div class="header-bar">
   <h1>墩上</h1>
@@ -207,13 +194,12 @@ async function loadMsgs() {
   const { data: cData } = await db.from("comments")
     .select("*").in("post_id", myPostIds).neq("nickname", myNickname).eq("status", "visible");
   
-  // 这里的点赞消息，借用帖子的最新时间，这样混排时才会出现在上面
   const likedMsgs = myPosts.filter(p => p.likes > 0).map(p => ({
     id: "like-" + p.id, 
     type: "like", 
     nickname: "有人",
     post_id: p.id,
-    created_at: p.created_at, // 用帖子的时间代替
+    created_at: p.created_at, 
     content: `点赞了你的帖子：「${p.content.substring(0, 15)}...」`
   }));
 
@@ -226,7 +212,6 @@ async function loadMsgs() {
     content: c.content
   }));
 
-  // 【核心改动】：合并所有消息，并按时间从新到旧排序
   myMsgs = [...commentMsgs, ...likedMsgs].sort((a, b) => {
     return new Date(b.created_at) - new Date(a.created_at);
   });
@@ -338,7 +323,6 @@ async function showProfile(nickname) {
 }
 
 window.jumpToPost = function(postId) {
-  // 关掉所有弹窗
   document.getElementById("profileOverlay").classList.add("hidden");
   document.getElementById("msgOverlay").classList.add("hidden");
   
@@ -561,36 +545,6 @@ document.getElementById("sendFeedback").addEventListener("click", async () => {
   document.getElementById("feedbackOverlay").classList.add("hidden");
   toast("已收到，感谢反馈");
 });
-
-(function() {
-  const KEY = "dunshang_agreed_date";
-  const today = new Date().toDateString();
-  const overlay = document.getElementById("overlay");
-  const btn = document.getElementById("agreeBtn");
-
-  if (localStorage.getItem(KEY) === today) {
-    overlay.classList.add("hidden");
-    return;
-  }
-
-  let left = 5;
-  btn.textContent = `请阅读（${left}s）`;
-  const timer = setInterval(() => {
-    left--;
-    if (left <= 0) {
-      clearInterval(timer);
-      btn.disabled = false;
-      btn.textContent = "我知道了";
-    } else {
-      btn.textContent = `请阅读（${left}s）`;
-    }
-  }, 1000);
-
-  btn.addEventListener("click", () => {
-    localStorage.setItem(KEY, today);
-    overlay.classList.add("hidden");
-  });
-})();
 
 (async () => {
   user = await initAuth();
